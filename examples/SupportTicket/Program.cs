@@ -43,7 +43,7 @@ using HttpClient httpClient = new()
     Timeout = TimeSpan.FromMinutes(2),
 };
 
-DesicionClient client = new(httpClient);
+DecisionClient client = new(httpClient);
 
 try
 {
@@ -70,6 +70,10 @@ try
     {
         Console.WriteLine($"Urgency score: {urgency.Score:F2} (scale 0-{urgency.Legend.Count - 1})");
         Console.WriteLine($"Score confidence: {urgency.Confidence:P1}");
+        foreach ((string option, double probability) in urgency.Probabilities)
+        {
+            Console.WriteLine($"  {option}: {probability:P1}");
+        }
     }
 }
 catch (HttpRequestException exception)

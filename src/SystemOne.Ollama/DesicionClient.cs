@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace SystemOne.Ollama;
 
-public sealed class DesicionClient(HttpClient httpClient)
+public sealed class DecisionClient(HttpClient httpClient)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {

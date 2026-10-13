@@ -22,7 +22,7 @@ internal static class Program
             Timeout = TimeSpan.FromMinutes(2),
         };
 
-        DesicionClient client = new(httpClient);
+        DecisionClient client = new(httpClient);
         char[] board = new char[9];
         Array.Fill(board, ' ');
         char currentPlayer = 'X';
