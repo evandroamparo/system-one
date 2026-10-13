@@ -44,12 +44,10 @@ internal static class Program
             }
             else
             {
-                Dictionary<string, string?> criteria = Enumerable.Range(0, board.Length)
-                    .Where(index => board[index] == ' ')
-                    .ToDictionary(
-                        index => (index + 1).ToString(CultureInfo.InvariantCulture),
-                        index => (string?)$"Row {index / 3 + 1}, column {index % 3 + 1}",
-                        StringComparer.Ordinal);
+                Dictionary<string, string?> criteria = BuildMoveCriteria(board);
+                string boardState = string.Join(" / ",
+                    Enumerable.Range(0, 3)
+                        .Select(row => new string(board, row * 3, 3).Replace(' ', '-')));
 
                 SystemOneRequest<TicTacToeState> request = new(
                     Model: model,
@@ -64,7 +62,16 @@ internal static class Program
                     Questions: new Dictionary<string, SystemOneQuestion>
                     {
                         ["move"] = new ChoiceQuestion(
-                            Instructions: "The board rows use X, O, and - for empty. Choose one available square for O. Win if possible; otherwise block X. Return a legal option key.",
+                            Instructions:
+                                "You are playing Tic-Tac-Toe as O. " +
+                                "The board is a 3x3 grid where '-' means empty, 'X' is the human, and 'O' is you. " +
+                                "The current board is: " + boardState + ". " +
+                                "Your move must be one of the legal options only: " + string.Join(", ", criteria.Keys) + ". " +
+                                "Choose the best move using this priority order: " +
+                                "1) win immediately if you can, 2) block the human's immediate win if they have one next, " +
+                                "3) take the center if available, 4) take a corner, 5) take any remaining legal square. " +
+                                "Return only the numeric key of the chosen square, never a sentence or a board. " +
+                                "Do not choose a square that is already occupied.",
                             Criteria: criteria),
                     });
 
@@ -88,12 +95,16 @@ internal static class Program
                     || !criteria.ContainsKey(choice.Choice)
                     || !int.TryParse(choice.Choice, NumberStyles.None, CultureInfo.InvariantCulture, out int square))
                 {
-                    Console.Error.WriteLine("System One returned a move that was not one of the available squares.");
-                    return 1;
+                    int fallbackMove = ChooseBestMove(board, 'O');
+                    Console.Error.WriteLine("System One returned a move that was not one of the available squares or did not follow the legal options. Falling back to local tactical move.");
+                    Console.WriteLine($"Fallback move: {fallbackMove + 1} in {timer.ElapsedMilliseconds} ms.");
+                    move = fallbackMove;
                 }
-
-                move = square - 1;
-                Console.WriteLine($"System One chose square {square} in {timer.ElapsedMilliseconds} ms (confidence: {choice.Confidence:P1}).");
+                else
+                {
+                    move = square - 1;
+                    Console.WriteLine($"System One chose square {square} in {timer.ElapsedMilliseconds} ms (confidence: {choice.Confidence:P1}).");
+                }
             }
 
             board[move] = currentPlayer;
@@ -115,6 +126,57 @@ internal static class Program
 
             currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
         }
+    }
+
+    private static Dictionary<string, string?> BuildMoveCriteria(char[] board)
+    {
+        return Enumerable.Range(0, board.Length)
+            .Where(index => board[index] == ' ')
+            .ToDictionary(
+                index => (index + 1).ToString(CultureInfo.InvariantCulture),
+                index => (string?)$"Square {(index + 1)} (row {index / 3 + 1}, column {index % 3 + 1})",
+                StringComparer.Ordinal);
+    }
+
+    private static int ChooseBestMove(char[] board, char player)
+    {
+        int[] legalMoves = Enumerable.Range(0, board.Length)
+            .Where(index => board[index] == ' ')
+            .ToArray();
+
+        foreach (int move in legalMoves)
+        {
+            board[move] = player;
+            if (GetWinner(board) == player)
+            {
+                board[move] = ' ';
+                return move;
+            }
+            board[move] = ' ';
+        }
+
+        char opponent = player == 'X' ? 'O' : 'X';
+        foreach (int move in legalMoves)
+        {
+            board[move] = opponent;
+            if (GetWinner(board) == opponent)
+            {
+                board[move] = ' ';
+                return move;
+            }
+            board[move] = ' ';
+        }
+
+        int[] preferred = [4, 0, 2, 6, 8, 1, 3, 5, 7];
+        foreach (int move in preferred)
+        {
+            if (board[move] == ' ')
+            {
+                return move;
+            }
+        }
+
+        return legalMoves[0];
     }
 
     private static int ReadHumanMove(char[] board)
