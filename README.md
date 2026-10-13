@@ -14,11 +14,11 @@ Pull the recommended model:
 ollama pull nimble
 ```
 
-The local server listens at `http://localhost:11434` by default. Build and run the sample:
+The local server listens at `http://localhost:11434` by default. Build the solution and run the support-ticket example:
 
 ```powershell
-dotnet build
-
+dotnet build SystemOne.sln
+dotnet run --project examples/SupportTicket/SupportTicket.csproj
 ```
 
 The program asks three questions about the same support ticket: which team should handle it, whether a refund was explicitly requested, and how urgent it is. You can select another local model or server URL with environment variables:
@@ -26,14 +26,28 @@ The program asks three questions about the same support ticket: which team shoul
 ```powershell
 $env:OLLAMA_MODEL = "tev1:4b"
 $env:OLLAMA_BASE_URL = "http://localhost:11434/"
-dotnet run
+dotnet run --project examples/SupportTicket/SupportTicket.csproj
 ```
 
 For Bash:
 
 ```bash
-OLLAMA_MODEL=tev1:4b OLLAMA_BASE_URL=http://localhost:11434/ dotnet run
+OLLAMA_MODEL=tev1:4b OLLAMA_BASE_URL=http://localhost:11434/ dotnet run --project examples/SupportTicket/SupportTicket.csproj
 ```
+
+Play tic-tac-toe against System One. You play as X, and the model chooses among the currently empty squares as O:
+
+```powershell
+dotnet run --project examples/TicTacToe/TicTacToe.csproj
+```
+
+For Bash:
+
+```bash
+OLLAMA_MODEL=tev1:4b OLLAMA_BASE_URL=http://localhost:11434/ dotnet run --project examples/TicTacToe/TicTacToe.csproj
+```
+
+The game applies and validates moves locally. The displayed duration measures the complete decision request; actual latency depends on the model, hardware, and input, and is not guaranteed. System One selects from the legal moves supplied by the example and does not guarantee optimal play.
 
 Local requests do not require an API key. This sample calls the System One endpoint directly.
 
@@ -74,10 +88,11 @@ A smaller alternative is `tev1:4b`, listed at approximately 4.4–4.5 GB and als
 
 ## Project Structure
 
-- [Program.cs](Program.cs) builds a typed state, combines all three question types, and prints the results.
-- [DesicionClient.cs](DesicionClient.cs) wraps `HttpClient`, posts JSON to `v1/systemone`, and deserializes the response.
-- Each model type has a dedicated source file, such as [SystemOneRequest.cs](SystemOneRequest.cs), [ChoiceQuestion.cs](ChoiceQuestion.cs), and [ChoiceAnswer.cs](ChoiceAnswer.cs).
-- [SystemOne.Ollama.csproj](SystemOne.Ollama.csproj) targets `net10.0`. No additional NuGet packages are required.
+- [SystemOne.Ollama.csproj](src/SystemOne.Ollama/SystemOne.Ollama.csproj) builds the shared client and typed models as a `net10.0` library.
+- [DesicionClient.cs](src/SystemOne.Ollama/DesicionClient.cs) wraps `HttpClient`, posts JSON to `v1/systemone`, and deserializes the response. Existing question and answer models are shared by both examples.
+- [Program.cs](examples/SupportTicket/Program.cs) demonstrates the three question types against a support ticket.
+- [Program.cs](examples/TicTacToe/Program.cs) demonstrates a compact choice decision for a legal game move.
+- [SystemOne.sln](SystemOne.sln) builds the library and both examples. No additional NuGet packages are required.
 
 The `JsonPolymorphic` and `JsonDerivedType` attributes map the JSON `type` field to concrete C# question and answer types. Responses deserialize as `ChoiceAnswer`, `NoulAnswer`, or `ScoreAnswer` instead of untyped dictionaries. The client accepts a caller-configured `HttpClient`, so larger applications can control its base address, timeout, and lifetime.
 
