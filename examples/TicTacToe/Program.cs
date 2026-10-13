@@ -79,6 +79,7 @@ internal static class Program
                 SystemOneResponse response;
                 try
                 {
+                    Console.Write("💭");
                     response = await client.AskAsync(request);
                 }
                 catch (HttpRequestException exception)
