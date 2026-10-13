@@ -77,3 +77,10 @@ Output varies by model and environment; the values above are examples, not guara
 - `src/SystemOne.Ollama`: shared HTTP client and models.
 - `examples/SupportTicket`: classification using `choice`, `noul`, and `score`.
 - `examples/TicTacToe`: choosing among legal moves in a game.
+
+## References
+
+- [System One API](https://docs.ollama.com/api/systemone)
+- [Decision capability](https://docs.ollama.com/capabilities/decision)
+- [Nimble model](https://ollama.com/library/nimble)
+- [Tev1 model](https://ollama.com/library/tev1)
