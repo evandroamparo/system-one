@@ -1,120 +1,79 @@
-# Ollama System One with .NET 10
+# System One with .NET
 
-This runnable .NET 10 console sample sends typed C# request objects to Ollama's `POST /v1/systemone` endpoint and deserializes the typed response. `DesicionClient` wraps `HttpClient` for the request.
+This repository demonstrates how to use **Ollama System One** in .NET applications.
 
-## Prerequisites
+## What is System One?
 
-- .NET 10 SDK
-- Ollama v0.35.0 or later
-- The `nimble` model pulled locally
+System One is Ollama's decision API. An application provides a state and questions with explicit criteria; the model evaluates them and returns structured results, such as a choice, a yes/no probability, or a score. Unlike a chat response, the result is designed for applications to consume directly.
 
-Pull the recommended model:
+## Run the projects
+
+Prerequisites: .NET 10 SDK and Ollama v0.35.0 or later running locally. Pull the models used by the examples:
 
 ```powershell
 ollama pull nimble
+ollama pull tev1:4b
 ```
 
-The local server listens at `http://localhost:11434` by default. Build the solution and run the support-ticket example:
+From the repository root, build the solution:
 
 ```powershell
 dotnet build SystemOne.sln
-dotnet run --project examples/SupportTicket/SupportTicket.csproj
 ```
 
-The program asks three questions about the same support ticket: which team should handle it, whether a refund was explicitly requested, and how urgent it is. You can select another local model or server URL with environment variables:
+Ollama uses `http://localhost:11434/` by default. To use a different model or server URL, set `OLLAMA_MODEL` or `OLLAMA_BASE_URL` before running an example.
+
+## Examples
+
+### Support ticket classification
 
 ```powershell
-$env:OLLAMA_MODEL = "tev1:4b"
-$env:OLLAMA_BASE_URL = "http://localhost:11434/"
 dotnet run --project examples/SupportTicket/SupportTicket.csproj
 ```
 
-For Bash:
+Submits a support ticket and evaluates three aspects: the responsible team (`choice`), whether a refund was explicitly requested (`noul`), and urgency (`score`).
 
-```bash
-OLLAMA_MODEL=tev1:4b OLLAMA_BASE_URL=http://localhost:11434/ dotnet run --project examples/SupportTicket/SupportTicket.csproj
+Illustrative output:
+
+```text
+Model: nimble
+Input tokens: 245
+Team: billing (confidence: 82.4%)
+  billing: 82.4%
+  technical: 12.1%
+  other: 5.5%
+Probability refund was requested: 98.7%
+Urgency score: 1.42 (scale 0-2)
+Score confidence: 71.3%
 ```
 
-Play tic-tac-toe against System One. You play as X, and the model chooses among the currently empty squares as O:
+### Tic-tac-toe
 
 ```powershell
 dotnet run --project examples/TicTacToe/TicTacToe.csproj
 ```
 
-For Bash:
+You play as `X`; System One chooses an empty square as `O`. The application provides the legal moves and validates the result locally.
 
-```bash
-OLLAMA_MODEL=tev1:4b OLLAMA_BASE_URL=http://localhost:11434/ dotnet run --project examples/TicTacToe/TicTacToe.csproj
+Illustrative output:
+
+```text
+Tic-tac-toe: you are X; System One is O.
+
+ 1 | 2 | 3
+---+---+---
+ 4 | 5 | 6
+---+---+---
+ 7 | 8 | 9
+
+Choose an empty square (1-9), or press Enter to quit: 1
+System One chose square 5 in 1250 ms (confidence: 76.0%).
 ```
 
-The game applies and validates moves locally. The displayed duration measures the complete decision request; actual latency depends on the model, hardware, and input, and is not guaranteed. System One selects from the legal moves supplied by the example and does not guarantee optimal play.
+Output varies by model and environment; the values above are examples, not guaranteed results.
 
-Local requests do not require an API key. This sample calls the System One endpoint directly.
+## Project structure
 
-## What Is System One?
-
-System One is a local API for decision models. Instead of asking a chat model to write a free-form answer, an application supplies:
-
-- `state`: the content to evaluate, such as text or structured JSON data;
-- `questions`: one or more named questions, each with a type, instructions, and, where applicable, explicit criteria.
-
-The model scores the allowed outcomes. This fits classification, routing, Boolean checks, and rubric-based evaluation. System One is not a conversation: questions do not receive one another's answers, and the model does not produce free-form explanations. Implement cross-answer consistency checks or explanations in application code when required.
-
-### Question Types
-
-| Type | Purpose | Result |
-| --- | --- | --- |
-| `choice` | Select among named options with descriptions | Selected option, probabilities for each option, and confidence |
-| `noul` | Estimate a yes/no outcome | `noul`, the probability that the outcome is `true`, from 0 to 1 |
-| `score` | Evaluate ordered levels from lowest to highest | `score`, the expected value on a zero-based scale, probabilities per level, and confidence |
-
-For `choice`, `criteria` maps stable option keys to descriptions. Include a `none` option when none of the normal options may apply. For `noul`, descriptions of `true` and `false` are optional. For `score`, array order defines the scale: three criteria produce levels 0, 1, and 2. The result is a probability-weighted average, so it can be fractional rather than a whole level.
-
-Probabilities are normalized across the supplied candidates, subject to floating-point precision. `confidence`, returned for `choice` and `score`, describes how concentrated that distribution is. It is not a calibrated probability that the answer is correct, so a high value is not a guarantee.
-
-## Why Use a Decision Model?
-
-Chat models typically generate tokens until they produce a natural-language response, which application code must then interpret. System One models are tuned to score application-defined alternatives and return structured decisions with probabilities. This can simplify classification tasks and makes the accepted outcomes explicit.
-
-The model is still probabilistic and can be wrong. Use clear instructions, distinct criteria, and representative examples. Measure error rates and validate any confidence threshold on your own data. Keep suitable review and controls in place for high-impact decisions, including decisions in security, health, and finance.
-
-## Model Choice
-
-This sample recommends `nimble`, a 9B-parameter decision model. Its Ollama download is listed at approximately 9.3–9.5 GB. Download size is not total inference memory: the runtime, loaded context, and other processes also consume RAM. Nimble is a reasonable local decision-model choice to evaluate with 32 GB, but CPU latency depends on the processor, quantization, and input size; do not expect GPU-level latency.
-
-Nimble specializes in text decisions and is fine-tuned from Qwen3.5-9B. The Ollama tag listing reports a 256K context window, while the model notes say a decision prompt must fit within 8,192 tokens. Because these published values differ, treat 8,192 tokens as the conservative limit, keep state and instructions concise, and verify behavior for the installed tag. Each question is scored with the state and question set in context.
-
-A smaller alternative is `tev1:4b`, listed at approximately 4.4–4.5 GB and also trained for decision tasks. Results depend on the data and task, so benchmark both on your own domain before choosing for quality or latency. `tev1:0.8b` is smaller still, but has lower published average performance. Author-reported benchmarks are not a substitute for your own evaluation.
-
-## Project Structure
-
-- [SystemOne.Ollama.csproj](src/SystemOne.Ollama/SystemOne.Ollama.csproj) builds the shared client and typed models as a `net10.0` library.
-- [DesicionClient.cs](src/SystemOne.Ollama/DesicionClient.cs) wraps `HttpClient`, posts JSON to `v1/systemone`, and deserializes the response. Existing question and answer models are shared by both examples.
-- [Program.cs](examples/SupportTicket/Program.cs) demonstrates the three question types against a support ticket.
-- [Program.cs](examples/TicTacToe/Program.cs) demonstrates a compact choice decision for a legal game move.
-- [SystemOne.sln](SystemOne.sln) builds the library and both examples. No additional NuGet packages are required.
-
-The `JsonPolymorphic` and `JsonDerivedType` attributes map the JSON `type` field to concrete C# question and answer types. Responses deserialize as `ChoiceAnswer`, `NoulAnswer`, or `ScoreAnswer` instead of untyped dictionaries. The client accepts a caller-configured `HttpClient`, so larger applications can control its base address, timeout, and lifetime.
-
-## Why `HttpClient` Instead of the OpenAI SDK?
-
-The official OpenAI .NET SDK allows a custom endpoint/base URL and provides typed methods for OpenAI-compatible operations such as chat completions. That does not mean it supports arbitrary routes. System One uses the dedicated `POST /v1/systemone` route, which is not exposed as a typed operation by the OpenAI SDK. This sample therefore uses `HttpClient` and its own typed models rather than pretending a chat-completion call exercises System One.
-
-For Ollama's OpenAI-compatible endpoints, see the [Ollama OpenAI compatibility documentation](https://docs.ollama.com/openai) and the [official OpenAI .NET SDK](https://github.com/openai/openai-dotnet).
-
-## Important Limits
-
-- The System One API requires Ollama v0.35.0 or later; images with Clef models require v0.35.1 or later. This sample uses text and Nimble.
-- A request accepts 1 to 64 named questions. Option limits vary by model; follow the limits for the model in use.
-- Requests without images are limited to 64 KiB, and input is not automatically truncated. The input must also fit in the loaded model context.
-- System One returns a complete JSON response; streaming and typical generation controls are not available on this route.
-- This sample does not set `keep_alive`; Ollama uses its configured default.
-
-## References
-
-- [Ollama: System One API](https://docs.ollama.com/api/systemone)
-- [Ollama: Decision capability](https://docs.ollama.com/capabilities/decision)
-- [Ollama Library: Nimble](https://ollama.com/library/nimble)
-- [Ollama Library: Tev1](https://ollama.com/library/tev1)
-- [Ollama: OpenAI compatibility](https://docs.ollama.com/openai)
-- [OpenAI .NET SDK](https://github.com/openai/openai-dotnet)
+- `src/SystemOne.Ollama`: shared HTTP client and models.
+- `examples/SupportTicket`: classification using `choice`, `noul`, and `score`.
+- `examples/TicTacToe`: choosing among legal moves in a game.
