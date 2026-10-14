@@ -33,6 +33,25 @@ dotnet run --project examples/SupportTicket/SupportTicket.csproj
 
 Submits a support ticket and evaluates three aspects: the responsible team (`choice`), whether a refund was explicitly requested (`noul`), and urgency (`score`).
 
+The state contains the ticket details:
+
+```json
+{
+  "CustomerMessage": "I was charged twice. Please refund the extra payment.",
+  "ServiceStatus": "The checkout service is returning HTTP 500 errors."
+}
+```
+
+For the `intent` question, the instructions and criteria are:
+
+```text
+Instructions: Which support team should handle this ticket?
+Criteria:
+  billing: Payments, duplicate charges, and refunds
+  technical: Software errors, outages, and integrations
+  other: None of the listed teams applies
+```
+
 Illustrative output:
 
 ```text
@@ -54,6 +73,33 @@ dotnet run --project examples/TicTacToe/TicTacToe.csproj
 ```
 
 You play as `X`; System One chooses an empty square as `O`. The application provides the legal moves and validates the result locally.
+
+After X chooses square 1, the state for O's turn is:
+
+```json
+{
+  "Board": ["X--", "---", "---"],
+  "Player": "O"
+}
+```
+
+The `move` question includes the current board and only the available squares:
+
+```text
+Instructions: You are playing Tic-Tac-Toe as O. The board is a 3x3 grid where...
+
+Criteria:
+  2: Square 2 (row 1, column 2)
+  3: Square 3 (row 1, column 3)
+  4: Square 4 (row 2, column 1)
+  5: Square 5 (row 2, column 2)
+  6: Square 6 (row 2, column 3)
+  7: Square 7 (row 3, column 1)
+  8: Square 8 (row 3, column 2)
+  9: Square 9 (row 3, column 3)
+```
+
+The board, legal-move criteria, and board-specific instructions are rebuilt for each O turn.
 
 Illustrative output:
 
