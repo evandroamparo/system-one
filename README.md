@@ -116,13 +116,36 @@ Choose an empty square (1-9), or press Enter to quit: 1
 System One chose square 5 in 1250 ms (confidence: 76.0%).
 ```
 
-Output varies by model and environment; the values above are examples, not guaranteed results.
+### Live chat moderation
+
+```powershell
+dotnet run --project examples/LiveChatModeration/LiveChatModeration.csproj
+```
+
+Replays a short stream of sample chat messages, submitting each message as a separate event. For every message, System One classifies the moderation category (`choice`), estimates the probability of a rules violation (`noul`), and scores its severity (`score`). The example prints the complete assessment and request latency before sending the next event. The feed is local and deterministic; it does not connect to a live chat platform.
+
+Illustrative output:
+
+```text
+Replaying 6 chat messages with model 'nimble'. Press Ctrl+C to stop.
+
+[10:15:32.104] Mira: Good morning! Has anyone tried the new release yet?
+Model: nimble
+Category: allow (confidence: 91.2%)
+Policy violation probability: 2.1%
+Severity: 0.04 / 4 (confidence: 88.5%)
+Decision time: 740 ms
+Tokens: 198 in, 42 out
+```
+
+Latency and assessments vary by model and environment. Each event receives a complete response; the current client does not stream partial answers. Press Ctrl+C to stop the replay.
 
 ## Project structure
 
 - `src/SystemOne.Ollama`: shared HTTP client and models.
 - `examples/SupportTicket`: classification using `choice`, `noul`, and `score`.
 - `examples/TicTacToe`: choosing among legal moves in a game.
+- `examples/LiveChatModeration`: event-by-event chat moderation using all three question types.
 
 ## References
 
