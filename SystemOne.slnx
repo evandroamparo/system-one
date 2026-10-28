@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Solution xmlns="https://schemas.microsoft.com/developer/msbuild/2003">
+  <Folder Name="src">
+    <Project Path="src/SystemOne.Ollama/SystemOne.Ollama.csproj" />
+  </Folder>
+  <Folder Name="examples">
+    <Project Path="examples/SupportTicket/SupportTicket.csproj" />
+    <Project Path="examples/TicTacToe/TicTacToe.csproj" />
+    <Project Path="examples/LiveChatModeration/LiveChatModeration.csproj" />
+  </Folder>
+</Solution>
